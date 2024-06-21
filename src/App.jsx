@@ -12,17 +12,85 @@ function App() {
   const [provider, setProvider] = useState();
   const [signer, setSigner] = useState();
 
-  const connectWallet = async () => { };
+  const connectWallet = async () => {
+    if (!window.ethereum) {
+      console.error("MEtamask not detected, pls download it");
+    } else {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      const signer = await provider.getSigner();
+      const address = await signer.getAddress();
+      setProvider(provider);
+      setSigner(signer);
+      setAddress(address);
+    }
+  };
 
-  const disconnectWallet = async () => { };
+  const disconnectWallet = async () => {
+    await provider.send("wallet_revokePermissions", [{
+      eth_accounts: {}
+    }]);
 
-  const switchChain = async (chainId) => { };
+    setProvider(null);
+    setSigner(null);
+    setAddress(null);
+  };
 
-  const getCounter = async () => { };
+  const switchChain = async (chainId) => { 
+    try {
+      if (provider) {
+        const hexChainId = `0x${chainId.toString(16)}`;
+        console.log(hexChainId);
+        await provider.send("wallet_switchEthereumChain", [{chainId: hexChainId}]);
+        console.log("Switched chains with chainid", chainId);
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
 
-  const incrementCounter = async () => { };
+  const getCounter = async () => {
+    try {
+      if (provider) {
+        const contract = new ethers.Contract(contractAddress, counterAbi, provider);
+        const counter = await contract.counter();
+        setCount(counter.toString());
+        console.log("counter value updated");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
-  const decrementCounter = async () => { };
+  const incrementCounter = async () => {
+    try {
+      if (signer) {
+        const contract = new ethers.Contract(contractAddress, counterAbi, signer);
+        const tx = await contract.incrementCounter();
+        console.log("transaction sent, waiting for confirmation");
+        console.log(tx);
+        const receipt = await tx.wait();
+        console.log("tx success", receipt);
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const decrementCounter = async () => {
+    try {
+      if (signer) {
+        const contract = new ethers.Contract(contractAddress, counterAbi, signer);
+        const tx = await contract.decrementCounter();
+        console.log("transaction sent, waiting for confirmation");
+        console.log(tx);
+        const receipt = await tx.wait();
+        console.log("tx success", receipt);
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
 
   return (
     <>
